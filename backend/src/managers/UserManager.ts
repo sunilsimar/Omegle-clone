@@ -1,7 +1,7 @@
 import { Socket } from "socket.io";
+import { RoomManager } from "./RoomManager";
 
-let GLOBAL_ROOM_ID = 0;
-
+// let GLOBAL_ROOM_ID = 0;
 export interface User {
   socket: Socket;
   name: string;
@@ -10,10 +10,11 @@ export interface User {
 export class UserManager {
   private users: User[];
   private queue: string[];
-
+  private roomManager: RoomManager;
   constructor() {
     this.users = [];
     this.queue = [];
+    this.roomManager = new RoomManager();
   }
   addUser(name: string, socket: Socket) {
     this.users.push({
@@ -21,27 +22,50 @@ export class UserManager {
       socket,
     });
     this.queue.push(socket.id);
+    socket.send("lobby");
     this.clearQueue();
+    this.initHandlers(socket);
   }
   removeUser(socketId: string) {
-    this.users = this.users.filter((x) => x.socket.id === socketId);
+    const user = this.users.find((x) => x.socket.id === socketId);
+    this.users = this.users.filter((x) => x.socket.id !== socketId);
     this.queue = this.queue.filter((x) => x === socketId);
   }
 
   clearQueue() {
+    console.log("inside clear queue");
     if (this.queue.length < 2) {
       return;
     }
-    const user1 = this.users.find((x) => x.socket.id === this.queue.pop());
-    const user2 = this.users.find((x) => x.socket.id === this.queue.pop());
-    const roomId = this.generate();
-    user1?.socket.emit("new-room", {
-      type: "send-offer",
-      roomId,
-    });
+
+    const id1 = this.queue.pop();
+    const id2 = this.queue.pop();
+    const user1 = this.users.find((x) => x.socket.id === id1);
+    const user2 = this.users.find((x) => x.socket.id === id2);
+    if (!user1 || !user2) {
+      return;
+    }
+    const room = this.roomManager.createRoom(user1, user2);
+    this.clearQueue();
+    // const roomId = this.generate();
+    // user1?.socket.emit("new-room", {
+    //   type: "send-offer",
+    //   roomId,
+    // });
   }
 
-  generate() {
-    return GLOBAL_ROOM_ID++;
+  //   generate() {
+  //     return GLOBAL_ROOM_ID++;
+  //   }
+
+  initHandlers(socket: Socket) {
+    socket.on("offer", ({ sdp, roomId }: { sdp: string; roomId: string }) => {
+      console.log("offer received");
+      this.roomManager.onOffer(roomId, sdp);
+    });
+    socket.on("answer", ({ sdp, roomId }: { sdp: string; roomId: string }) => {
+      console.log("answer received");
+      this.roomManager.onAnswer(roomId, sdp);
+    });
   }
 }
