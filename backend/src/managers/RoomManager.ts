@@ -1,6 +1,6 @@
 import { User } from "./UserManager";
 
-let GLOBAL_ROOM_ID = 0;
+let GLOBAL_ROOM_ID = 1;
 
 interface Room {
   user1: User;
@@ -30,27 +30,48 @@ export class RoomManager {
   }
 
   //receiving the offer from the user1 and sending offer
-  onOffer(roomId: string, sdp: string) {
-    const user2 = this.rooms.get(roomId)?.user2;
-    console.log("OnOffer");
-    console.log("user2 is" + user2);
-    user2?.socket.emit("offer", {
+  onOffer(roomId: string, sdp: string, senderSocketid: string) {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return;
+    }
+    const receivingUser =
+      room.user1.socket.id === senderSocketid ? room.user2 : room.user1;
+    receivingUser?.socket.emit("offer", {
       sdp,
       roomId,
     });
   }
 
   //receving the offer from the user2 and sending answer
-  onAnswer(roomId: string, sdp: string) {
-    console.log("answer received");
-    const user1 = this.rooms.get(roomId)?.user1;
-    console.log("onAnswer");
-    console.log("user1 is" + user1);
-    user1?.socket.emit("answer", {
+  onAnswer(roomId: string, sdp: string, senderSocketid: string) {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return;
+    }
+    const receivingUser =
+      room.user1.socket.id === senderSocketid ? room.user2 : room.user1;
+    receivingUser?.socket.emit("answer", {
       sdp,
       roomId,
     });
   }
+
+  onIceCandidates(
+    roomId: string,
+    senderSocketid: string,
+    candidate: any,
+    type: "sender" | "receiver"
+  ) {
+    const room = this.rooms.get(roomId);
+    if (!room) {
+      return;
+    }
+    const receivingUser =
+      room.user1.socket.id === senderSocketid ? room.user2 : room.user1;
+    receivingUser.socket.emit("add-ice-candidate", { candidate, type });
+  }
+
   generate() {
     return GLOBAL_ROOM_ID++;
   }
