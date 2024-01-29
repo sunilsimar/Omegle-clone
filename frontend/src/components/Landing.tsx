@@ -36,14 +36,17 @@ export const Landing = () => {
   if (!joined) {
     return (
       <div>
-        <video autoPlay ref={videoRef}></video>
+        <video width={500} autoPlay ref={videoRef}></video>
         <input
+          className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 w-50"
           type="text"
+          placeholder="Type your Name"
           onChange={(e) => {
             setName(e.target.value);
           }}
-        ></input>
+        />
         <button
+          className="inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-black text-white hover:bg-black h-10 px-4 py-2 mr-2"
           onClick={() => {
             setJoined(true);
           }}
